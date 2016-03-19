@@ -21,36 +21,39 @@ def extract_offset(json_input):
 
 
 def extract_places(json_input, max_offset):
+    register = dict()
     for key in sorted(json_input):
         blob = json_input[key]
-        if '_type' in blob and blob['_type'] in ["City", "Country", "Region"]:
+        if '_type' in blob and blob['_type'] in ["City", "Country", "Region", "ProvinceOrState"]:
             if 'resolutions' in blob:
                 place = blob['resolutions'][0]
             else:
                 place = blob
             offsets = [instance['offset'] for instance in blob['instances']]
-            yield [i for i in process_place(place, offsets, max_offset)]
+            # yield [i for i in process_place(place, offsets, max_offset)]
+
+            for offset in offsets:
+                register[offset + max_offset] = process_place(place)
+    return register
 
 
-def process_place(place, offsets, max_offset):
+def process_place(place):
     name = place['name']
     lat, lng = '', ''
     if 'latitude' in place and 'longitude' in place:
         lat = str(place['latitude'])
         lng = str(place['longitude'])
-    for offset in offsets:
-        offset += max_offset
-        yield (offset, name + '(' + lat + ',' + lng + ')')
+    return name + '(' + lat + ',' + lng + ')'
 
 
 if __name__ == '__main__':
     results = os.listdir('output')
-    places = []
+    places = dict()
     max_offset = 0
     for result in results:
         parsed_json = parse_result('output/' + result)
-        places.extend([place for place in extract_places(parsed_json, max_offset)])
+        places.update(extract_places(parsed_json, max_offset))
         max_offset = extract_offset(parsed_json)
 
-    for place in sorted(places, key=lambda x: x[0]):
-        print(place[0])
+    for place in sorted(places):
+        print(place, places[place])
