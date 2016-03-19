@@ -51,9 +51,10 @@ if __name__ == '__main__':
     places = dict()
     max_offset = 0
     for result in results:
+        print('NOW PARSING:', result)
         parsed_json = parse_result('output/' + result)
         places.update(extract_places(parsed_json, max_offset))
-        max_offset = extract_offset(parsed_json)
+        max_offset += extract_offset(parsed_json)
 
     for place in sorted(places):
         print(place, places[place])
