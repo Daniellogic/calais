@@ -1,5 +1,8 @@
 import json
 import os
+import pprint
+import time
+import geocoder
 
 
 def parse_result(result_file):
@@ -29,11 +32,15 @@ def extract_places(json_input, max_offset):
                 place = blob['resolutions'][0]
             else:
                 place = blob
-            offsets = [instance['offset'] for instance in blob['instances']]
-            # yield [i for i in process_place(place, offsets, max_offset)]
+            instances = blob['instances']
 
-            for offset in offsets:
-                register[offset + max_offset] = process_place(place)
+            for instance in instances:
+                adjusted_offset = instance['offset'] + max_offset
+                instance['offset'] = adjusted_offset
+                instance.update(place)
+                if 'shortname' not in instance:
+                    instance['shortname'] = instance['name']
+                register[adjusted_offset] = instance
     return register
 
 
@@ -56,5 +63,12 @@ if __name__ == '__main__':
         places.update(extract_places(parsed_json, max_offset))
         max_offset += extract_offset(parsed_json)
 
-    for place in sorted(places):
-        print(place, places[place])
+    for instance in sorted(places):
+        place = places[instance]
+        # print(place['offset'], place['exact'])
+        if 'longitude' not in place:
+            print('Geocoding:', place['name'])
+            print('Context:', place['detection'])
+            g = geocoder.google(place['name'])
+            pprint.pprint(g.json)
+            time.sleep(1)
